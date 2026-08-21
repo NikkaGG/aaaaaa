@@ -5,7 +5,7 @@ import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
 import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackageParam
+import de.robv.android.xposed.callbacks.XC_LoadPackage
 
 /**
  * Прячет сломанную 1x-камеру от Instagram, оставляя доступной только 0.5x (ultrawide).
@@ -33,7 +33,7 @@ class CameraOverride : IXposedHookLoadPackage {
         private const val BROKEN_CAMERA_ID = "0"
     }
 
-    override fun handleLoadPackage(lpparam: XC_LoadPackageParam) {
+    override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         if (lpparam.packageName != TARGET_PACKAGE) return
 
         val cameraManagerClass = XposedHelpers.findClass(
@@ -71,17 +71,3 @@ class CameraOverride : IXposedHookLoadPackage {
                         XposedBridge.log(
                             "[CameraOverride] Блокирую openCamera($BROKEN_CAMERA_ID) для $TARGET_PACKAGE"
                         )
-                        param.throwable = CameraAccessException(
-                            CameraAccessException.CAMERA_DISCONNECTED,
-                            "Camera $BROKEN_CAMERA_ID скрыта модулем CameraOverride"
-                        )
-                    }
-                }
-            }
-        )
-
-        XposedBridge.log(
-            "[CameraOverride] Хуки установлены для $TARGET_PACKAGE, скрываю камеру $BROKEN_CAMERA_ID"
-        )
-    }
-}
