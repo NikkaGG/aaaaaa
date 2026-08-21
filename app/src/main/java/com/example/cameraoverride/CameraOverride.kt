@@ -1,6 +1,8 @@
 package com.example.cameraoverride
 
 import android.hardware.camera2.CameraAccessException
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -11,7 +13,7 @@ class CameraOverride : IXposedHookLoadPackage {
 
     companion object {
         private const val TARGET_PACKAGE = "com.instagram.android"
-        private const val BROKEN_CAMERA_ID = "0"
+        private const val KEPT_BACK_CAMERA_ID = "3"
     }
 
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
@@ -28,39 +30,4 @@ class CameraOverride : IXposedHookLoadPackage {
             object : XC_MethodHook() {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     val ids = param.result as? Array<*> ?: return
-                    val filtered = ids
-                        .filterIsInstance<String>()
-                        .filter { it != BROKEN_CAMERA_ID }
-                        .toTypedArray()
-                    param.result = filtered
-                    XposedBridge.log(
-                        "[CameraOverride] getCameraIdList -> ${filtered.joinToString()}"
-                    )
-                }
-            }
-        )
-
-        XposedBridge.hookAllMethods(
-            cameraManagerClass,
-            "openCamera",
-            object : XC_MethodHook() {
-                override fun beforeHookedMethod(param: MethodHookParam) {
-                    val cameraId = param.args.getOrNull(0) as? String
-                    if (cameraId == BROKEN_CAMERA_ID) {
-                        XposedBridge.log(
-                            "[CameraOverride] Блокирую openCamera($BROKEN_CAMERA_ID) для $TARGET_PACKAGE"
-                        )
-                        param.throwable = CameraAccessException(
-                            CameraAccessException.CAMERA_DISCONNECTED,
-                            "Camera $BROKEN_CAMERA_ID скрыта модулем CameraOverride"
-                        )
-                    }
-                }
-            }
-        )
-
-        XposedBridge.log(
-            "[CameraOverride] Хуки установлены для $TARGET_PACKAGE, скрываю камеру $BROKEN_CAMERA_ID"
-        )
-    }
-}
+                    val manager = param.thisObject as? CameraManager ?: return
