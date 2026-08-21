@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:label="CameraOverride (IG 0.5x fix)"
+        android:allowBackup="false"
+        android:icon="@android:drawable/ic_menu_camera">
+
+        <!-- Обязательные метаданные, чтобы LSPosed распознал APK как модуль -->
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+        <meta-data
+            android:name="xposeddescription"
+            android:value="Прячет сломанную 1x камеру для Instagram, оставляя только 0.5x" />
+        <meta-data
+            android:name="xposedminversion"
+            android:value="82" />
+    </application>
+
+</manifest>
