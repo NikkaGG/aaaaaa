@@ -31,3 +31,56 @@ class CameraOverride : IXposedHookLoadPackage {
                 override fun afterHookedMethod(param: MethodHookParam) {
                     val ids = param.result as? Array<*> ?: return
                     val manager = param.thisObject as? CameraManager ?: return
+
+                    val filtered = ids
+                        .filterIsInstance<String>()
+                        .filter { id -> shouldKeepCamera(manager, id) }
+                        .toTypedArray()
+
+                    param.result = filtered
+                    XposedBridge.log(
+                        "[CameraOverride] getCameraIdList -> ${filtered.joinToString()}"
+                    )
+                }
+            }
+        )
+
+        XposedBridge.hookAllMethods(
+            cameraManagerClass,
+            "openCamera",
+            object : XC_MethodHook() {
+                override fun beforeHookedMethod(param: MethodHookParam) {
+                    val cameraId = param.args.getOrNull(0) as? String ?: return
+                    val manager = param.thisObject as? CameraManager ?: return
+
+                    if (!shouldKeepCamera(manager, cameraId)) {
+                        XposedBridge.log(
+                            "[CameraOverride] Блокирую openCamera($cameraId) для $TARGET_PACKAGE"
+                        )
+                        param.throwable = CameraAccessException(
+                            CameraAccessException.CAMERA_DISCONNECTED,
+                            "Camera $cameraId скрыта модулем CameraOverride"
+                        )
+                    }
+                }
+            }
+        )
+
+        XposedBridge.log(
+            "[CameraOverride] Хуки установлены для $TARGET_PACKAGE, " +
+                "показываю только заднюю камеру $KEPT_BACK_CAMERA_ID"
+        )
+    }
+
+    private fun shouldKeepCamera(manager: CameraManager, id: String): Boolean {
+        if (id == KEPT_BACK_CAMERA_ID) return true
+
+        val facing = try {
+            manager.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING)
+        } catch (e: Exception) {
+            null
+        } ?: return true
+
+        return facing != CameraCharacteristics.LENS_FACING_BACK
+    }
+}
